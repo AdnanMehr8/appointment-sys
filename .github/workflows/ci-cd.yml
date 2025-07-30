@@ -1,0 +1,63 @@
+name: CI/CD Pipeline with Docker Push
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install backend dependencies
+        run: |
+          cd server
+          npm ci
+
+      - name: Install frontend dependencies and build
+        run: |
+          cd client
+          npm ci
+          npm run build
+
+      - name: Install Docker Compose
+        run: |
+          sudo curl -L "https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+          sudo chmod +x /usr/local/bin/docker-compose
+          docker-compose --version
+
+      - name: Docker build
+        run: docker-compose build
+
+  docker-push:
+    runs-on: ubuntu-latest
+    needs: build-test
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: ⬇Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build & tag Docker images
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/appointment-system-server:latest ./server
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/appointment-system-client:latest ./client
+
+      - name: Push Docker images to Docker Hub
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/appointment-system-server:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/appointment-system-client:latest

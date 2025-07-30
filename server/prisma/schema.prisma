@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role
+  appointments Appointment[] @relation("CustomerAppointments")
+  availability Availability[]
+  providedAppointments Appointment[] @relation("ProviderAppointments")
+}
+
+model Appointment {
+  id             Int           @id @default(autoincrement())
+  customer       User          @relation("CustomerAppointments", fields: [customerId], references: [id])
+  customerId     Int
+  provider       User          @relation("ProviderAppointments", fields: [providerId], references: [id])
+  providerId     Int
+  availability   Availability? @relation(fields: [availabilityId], references: [id])
+  availabilityId Int?          @unique
+  date           DateTime
+  status         String        @default("BOOKED")
+  paid           Boolean      @default(false) 
+}
+
+model Availability {
+  id           Int          @id @default(autoincrement())
+  provider     User         @relation(fields: [providerId], references: [id])
+  providerId   Int
+  startTime    DateTime
+  endTime      DateTime
+  booked       Boolean      @default(false)
+  appointment  Appointment? 
+}

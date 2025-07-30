@@ -3,10 +3,6 @@ node_modules
 npm-debug.log
 yarn-error.log
 
-# Ignore build artifacts
-dist
-coverage
-build
 
 # Ignore environment secrets
 .env

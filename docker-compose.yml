@@ -57,17 +57,15 @@ services:
     build:
       context: ./client
       dockerfile: Dockerfile
-      target: development
     container_name: appointment_client
     restart: unless-stopped
     ports:
-      - "3000:3000"
-    environment:
-      - VITE_API_URL=http://localhost:4000
+      - "3000:80"
     depends_on:
       - server
     networks:
       - appointment_network
+
     volumes:
       - ./client:/app
       - /app/node_modules

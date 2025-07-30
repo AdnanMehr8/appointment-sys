@@ -1,6 +1,6 @@
 # backend docker file
 
-FROM node:18
+FROM node:20
 RUN npm install -g nodemon
 WORKDIR /app
 COPY package*.json ./

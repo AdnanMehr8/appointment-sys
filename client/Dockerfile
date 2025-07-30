@@ -1,54 +1,20 @@
-FROM node:22-alpine as development
+# Stage 1: Build React App
+FROM node:20 AS build
 
 WORKDIR /app
 
 COPY package*.json ./
-
-RUN npm ci && npm cache clean --force
-
-COPY . .
-
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-RUN chown -R nodejs:nodejs /app
-USER nodejs
-
-EXPOSE 3000
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
-
-FROM node:22-alpine as build
-
-WORKDIR /app
-
-COPY package*.json ./
-
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install
 
 COPY . .
-
 RUN npm run build
 
-FROM nginx:alpine as production
+# Stage 2: Serve using nginx
+FROM nginx:alpine
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-COPY --from=build /app/dist /usr/share/nginx/html
-
-RUN addgroup -g 1001 -S nginx_user && \
-    adduser -S nginx_user -u 1001
-
-RUN chown -R nginx_user:nginx_user /usr/share/nginx/html && \
-    chown -R nginx_user:nginx_user /var/cache/nginx && \
-    chown -R nginx_user:nginx_user /var/log/nginx && \
-    chown -R nginx_user:nginx_user /etc/nginx/conf.d
-
-USER nginx_user
+COPY --from=build /app/dist /usr/share/nginx/html  
+# COPY --from=build /app/build /usr/share/nginx/html  # for CRA
 
 EXPOSE 80
-
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
